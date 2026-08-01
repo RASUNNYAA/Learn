@@ -42,6 +42,7 @@ int power(int base, int n)
 }
 
 int findmax(int data[], int n)
+//findmax({5, 8, 7, 9, 11})= 11
 {
     if (n == 1)
         return data[0];
@@ -63,7 +64,7 @@ int main()
     printf("Enter the base: ");
     scanf("%d", &base);
     int data[]={5, 8, 7, 9, 11};
-    printf("Maximum value in the array is %d\n", findmax(data, 5));
+    printf("Maximum value in the data is %d\n", findmax(data, 5));
     printf("Factorial of %d is %d\n", n, factorial(n));
     printf("Fibonacci of %d is %d\n", n, fibonacci(n));
     printf("Sumton of %d is %d\n", n, sumton(n));
