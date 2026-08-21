@@ -42,11 +42,11 @@ typedef struct
 
 typedef struct
 {
-    IDCard personal_info;         /* ข้อมูลบัตรประชาชน */
-    StudentCard student_info;     /* ข้อมูลบัตรนักศึกษา */
-    Course registered_courses[5]; /* วิชาที่ลงทะเบียน ไม่เกิน 5 วิชา */
-    int total_courses;            /* จำนวนวิชาทั้งหมด */
-    char registration_date[16];   /* วันที่ลงทะเบียน */
+    IDCard personal_info;         
+    StudentCard student_info;     
+    Course registered_courses[5]; 
+    int total_courses;            
+    char registration_date[16];   
 } Registration;
 
 int main(void)
