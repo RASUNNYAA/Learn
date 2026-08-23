@@ -1,3 +1,18 @@
+//แอด git ลงในเครื่อง
+git init
+ls -h
+git add .
+git commit -m "first commit"
+git branch -M main
+git remote add origin https://github.com/RASUNNYAA/Learn.git
+git push -u origin main
+
+//ตั้งค่า git config
+git config --global user.name "ชื่อของคุณ"
+git config --global user.email "อีเมลของคุณ"
+git config --global --list
+
+//ส่งโค้ดขึ้น github
 git add .
 git commit -m "first commit"
 git branch -M main
