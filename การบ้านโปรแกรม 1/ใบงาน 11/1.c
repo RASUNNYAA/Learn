@@ -34,7 +34,7 @@ int main(void)
 	printf("Enter student name: ");
 	scanf(" %99[^\n]", student.name);
 	printf("Enter score: ");
-	scanf("%f\n", &student.score);
+	scanf("%f", &student.score);
 
 	printf("Name: %s\n", student.name);
 	printf("Grade: %c\n", calculateGrade(student));
