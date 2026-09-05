@@ -1,0 +1,267 @@
+import random
+import tkinter as tk
+
+
+COLS = 10
+ROWS = 20
+CELL = 30
+BOARD_BG = "#000000"
+GRID_BG = "#FFFFFF"
+COLORS = {
+	"I": "#000000",
+	"O": "#000000",
+	"T": "#000000",
+	"S": "#000000",
+	"Z": "#000000",
+	"J": "#000000",
+	"L": "#000000",
+}
+SHAPES = {
+	"I": [(0, 1), (1, 1), (2, 1), (3, 1)],
+	"O": [(1, 0), (2, 0), (1, 1), (2, 1)],
+	"T": [(1, 0), (0, 1), (1, 1), (2, 1)],
+	"S": [(1, 0), (2, 0), (0, 1), (1, 1)],
+	"Z": [(0, 0), (1, 0), (1, 1), (2, 1)],
+	"J": [(0, 0), (0, 1), (1, 1), (2, 1)],
+	"L": [(2, 0), (0, 1), (1, 1), (2, 1)],
+}
+
+
+class Blocktest:
+	def __init__(self, root):
+		self.root = root
+		self.root.title("Blocktest")
+		self.root.configure(bg=BOARD_BG)
+		self.root.resizable(False, False)
+		self.board = []
+		self.current = None
+		self.next_type = None
+		self.score = 0
+		self.lines = 0
+		self.level = 1
+		self.running = False
+		self.paused = False
+		self.timer = None
+		self.message = None
+
+		header = tk.Frame(root, bg=BOARD_BG)
+		header.pack(fill="x", padx=14, pady=(14, 8))
+		tk.Label(header, text="BLOCKTEST", bg=BOARD_BG, fg="#FFFFFF",
+				 font=("Segoe UI", 22, "bold")).pack(side="left")
+		self.score_label = tk.Label(header, text="SCORE 0", bg=BOARD_BG,
+									fg="#FFFFFF",
+									font=("Segoe UI", 11, "bold"))
+		self.score_label.pack(side="right")
+
+		body = tk.Frame(root, bg=BOARD_BG)
+		body.pack(padx=14)
+		self.canvas = tk.Canvas(body, width=COLS * CELL, height=ROWS * CELL,
+								bg=GRID_BG, highlightthickness=0)
+		self.canvas.pack(side="left")
+
+		side = tk.Frame(body, bg=BOARD_BG)
+		side.pack(side="left", padx=(14, 0), anchor="n")
+		tk.Label(side, text="NEXT", bg=BOARD_BG, fg="#BDBDBD",
+				 font=("Segoe UI", 10, "bold")).pack(pady=(8, 4))
+		self.next_canvas = tk.Canvas(side, width=120, height=90,
+									 bg=GRID_BG, highlightthickness=0)
+		self.next_canvas.pack()
+		self.info_label = tk.Label(side, text="LINES 0\nLEVEL 1", bg=BOARD_BG,
+									fg="#D9D9D9", justify="left",
+								   font=("Segoe UI", 10, "bold"))
+		self.info_label.pack(pady=12)
+
+		tk.Label(root, text="Left/Right: move   Up: rotate   Down: drop   Space: hard drop   P: pause",
+				 bg=BOARD_BG, fg="#BDBDBD",
+				 font=("Segoe UI", 9)).pack(pady=(10, 5))
+		tk.Button(root, text="NEW GAME", command=self.new_game,
+				  bg="#FFFFFF", fg="#000000", activebackground="#D9D9D9",
+				  activeforeground="#000000", relief="flat", padx=16, pady=7,
+				  font=("Segoe UI", 10, "bold")).pack(pady=(0, 14))
+
+		root.bind("<Left>", lambda event: self.move(-1, 0))
+		root.bind("<Right>", lambda event: self.move(1, 0))
+		root.bind("<Down>", lambda event: self.soft_drop())
+		root.bind("<Up>", lambda event: self.rotate())
+		root.bind("<space>", lambda event: self.hard_drop())
+		root.bind("p", lambda event: self.toggle_pause())
+		root.bind("P", lambda event: self.toggle_pause())
+
+		self.new_game()
+
+	def new_game(self):
+		if self.timer:
+			self.root.after_cancel(self.timer)
+		self.board = [[None for _ in range(COLS)] for _ in range(ROWS)]
+		self.score = 0
+		self.lines = 0
+		self.level = 1
+		self.paused = False
+		self.running = True
+		self.message = None
+		self.next_type = self.random_type()
+		self.spawn_piece()
+		self.draw()
+		self.tick()
+
+	def random_type(self):
+		return random.choice(list(SHAPES))
+
+	def spawn_piece(self):
+		piece_type = self.next_type
+		self.next_type = self.random_type()
+		self.current = {
+			"type": piece_type,
+			"cells": list(SHAPES[piece_type]),
+			"x": COLS // 2 - 2,
+			"y": 0,
+		}
+		self.draw_next()
+		if not self.valid(self.current["cells"], self.current["x"],
+						  self.current["y"]):
+			self.running = False
+			self.message = "GAME OVER"
+
+	def valid(self, cells, x, y):
+		for cell_x, cell_y in cells:
+			board_x = x + cell_x
+			board_y = y + cell_y
+			if board_x < 0 or board_x >= COLS or board_y >= ROWS:
+				return False
+			if board_y >= 0 and self.board[board_y][board_x] is not None:
+				return False
+		return True
+
+	def move(self, dx, dy):
+		if not self.running or self.paused:
+			return False
+		piece = self.current
+		if self.valid(piece["cells"], piece["x"] + dx, piece["y"] + dy):
+			piece["x"] += dx
+			piece["y"] += dy
+			self.draw()
+			return True
+		return False
+
+	def soft_drop(self):
+		if not self.move(0, 1) and self.running and not self.paused:
+			self.lock_piece()
+
+	def hard_drop(self):
+		if not self.running or self.paused:
+			return
+		while self.move(0, 1):
+			pass
+		self.lock_piece()
+
+	def rotate(self):
+		if not self.running or self.paused or self.current["type"] == "O":
+			return
+		piece = self.current
+		rotated = [(-cell_y, cell_x) for cell_x, cell_y in piece["cells"]]
+		min_x = min(cell_x for cell_x, _ in rotated)
+		min_y = min(cell_y for _, cell_y in rotated)
+		rotated = [(cell_x - min_x, cell_y - min_y)
+				   for cell_x, cell_y in rotated]
+		for offset in (0, -1, 1, -2, 2):
+			if self.valid(rotated, piece["x"] + offset, piece["y"]):
+				piece["cells"] = rotated
+				piece["x"] += offset
+				self.draw()
+				return
+
+	def lock_piece(self):
+		piece = self.current
+		for cell_x, cell_y in piece["cells"]:
+			board_x = piece["x"] + cell_x
+			board_y = piece["y"] + cell_y
+			if board_y >= 0:
+				self.board[board_y][board_x] = COLORS[piece["type"]]
+		self.clear_lines()
+		self.spawn_piece()
+		self.draw()
+
+	def clear_lines(self):
+		remaining = [row for row in self.board if any(cell is None for cell in row)]
+		cleared = ROWS - len(remaining)
+		self.board = [[None for _ in range(COLS)] for _ in range(cleared)] + remaining
+		if cleared:
+			self.lines += cleared
+			self.level = self.lines // 10 + 1
+			self.score += [0, 100, 300, 500, 800][cleared] * self.level
+			self.update_labels()
+
+	def tick(self):
+		if self.running:
+			if not self.paused:
+				self.soft_drop()
+			speed = max(80, 650 - (self.level - 1) * 50)
+			self.timer = self.root.after(speed, self.tick)
+
+	def toggle_pause(self):
+		if self.running:
+			self.paused = not self.paused
+			self.show_message("PAUSED" if self.paused else None)
+			self.draw()
+
+	def update_labels(self):
+		self.score_label.config(text=f"SCORE {self.score}")
+		self.info_label.config(text=f"LINES {self.lines}\nLEVEL {self.level}")
+
+	def draw_cell(self, canvas, x, y, color, size=CELL):
+		pad = 2
+		canvas.create_rectangle(x * size + pad, y * size + pad,
+								(x + 1) * size - pad,
+								(y + 1) * size - pad,
+								fill=color, outline="#000000", width=1)
+
+	def draw_next(self):
+		self.next_canvas.delete("all")
+		cells = SHAPES[self.next_type]
+		min_x = min(x for x, _ in cells)
+		max_x = max(x for x, _ in cells)
+		min_y = min(y for _, y in cells)
+		max_y = max(y for _, y in cells)
+		offset_x = (4 - (max_x - min_x + 1)) / 2 - min_x
+		offset_y = (3 - (max_y - min_y + 1)) / 2 - min_y
+		for x, y in cells:
+			self.draw_cell(self.next_canvas, offset_x + x, offset_y + y,
+						   COLORS[self.next_type], 22)
+
+	def draw(self):
+		self.canvas.delete("all")
+		for y, row in enumerate(self.board):
+			for x, color in enumerate(row):
+				if color:
+					self.draw_cell(self.canvas, x, y, color)
+		if self.current and self.running:
+			piece = self.current
+			for cell_x, cell_y in piece["cells"]:
+				board_x = piece["x"] + cell_x
+				board_y = piece["y"] + cell_y
+				if board_y >= 0:
+					self.draw_cell(self.canvas, board_x, board_y,
+								   COLORS[piece["type"]])
+		if self.paused:
+			self.message = "PAUSED"
+		if self.message:
+			self.show_message(self.message)
+
+	def show_message(self, message):
+		self.canvas.delete("message")
+		if message:
+			center_x = COLS * CELL / 2
+			center_y = ROWS * CELL / 2
+			self.canvas.create_rectangle(center_x - 125, center_y - 32,
+									 center_x + 125, center_y + 32,
+									 fill="#000000", outline="#000000",
+									 tags="message")
+			self.canvas.create_text(center_x, center_y, text=message,
+									fill="#FFFFFF",
+									font=("Segoe UI", 24, "bold"),
+									tags="message")
+
+
+root = tk.Tk()
+Blocktest(root)
+root.mainloop()

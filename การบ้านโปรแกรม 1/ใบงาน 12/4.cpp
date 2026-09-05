@@ -67,7 +67,6 @@ int main()
     fan1.showData();
     fan1.increaseSpeed();
     fan1.increaseSpeed();
-    
 
     cout << "\n";
 

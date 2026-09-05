@@ -1,0 +1,81 @@
+import turtle as t
+import math as m
+import random as r
+import time
+
+s = t.Screen()
+s.setup(600, 600)
+s.bgcolor("black")
+s.tracer(0)
+
+N = 350
+stars = []
+
+for i in range(N):
+    a = 2 * m.pi * (i / N)
+    base_x =16 * (m.sin(a) ** 3) * 11
+    base_y = (13 * m.cos(a) - 5 * m.cos(2 * a) - 2 * m.cos(3 * a) - m.cos(4 * a)) * 11
+
+    tx = base_x + r.randint(-15, 15)
+    ty = base_y + r.randint(-15, 15)
+
+    sx, sy = r.randint(-320, 320), r.randint(-320, 320)
+    size = r.uniform(2.5, 5.5)
+    stars.append((tx, ty, sx, sy, size))
+
+p = t.Turtle()
+p.hideturtle()
+p.pencolor("#a855f7")
+p.width(1.2)
+text = t.Turtle()
+text.hideturtle()
+text.pencolor("white")
+directions = [(m.cos(m.radians(angle)), m.sin(m.radians(angle)))
+              for angle in (0, 45, 90, 135)]
+
+def draw_star(x, y, size):
+    for direction_x, direction_y in directions:
+        dx, dy = size * direction_x, size * direction_y
+        p.penup()
+        p.goto(x - dx, y - dy)
+        p.pendown()
+        p.goto(x + dx, y + dy)
+
+steps = 50
+fps = 60
+frame_time = 1 / fps
+for frame in range(steps, -1, -1):
+    frame_start = time.perf_counter()
+    p.clear()
+    progress = frame / steps
+    eased = m.sin(progress * m.pi / 2)
+    
+    for star in stars:
+        tx, ty, sx, sy, size = star
+        x = tx + (sx - tx) * (frame / steps)
+        y = ty + (sy - ty) * (frame / steps)
+        draw_star(x, y, size)
+    s.update()
+    elapsed = time.perf_counter() - frame_start
+    time.sleep(max(0, frame_time - elapsed))
+
+heartbeat_duration = 3
+heartbeat_start = time.perf_counter()
+while time.perf_counter() - heartbeat_start < heartbeat_duration:
+    frame_start = time.perf_counter()
+    p.clear()
+    elapsed = time.perf_counter() - heartbeat_start
+    beat = max(0, m.sin(2 * m.pi * 1.2 * elapsed))
+    scale = 1 + 0.08 * beat
+
+    for tx, ty, sx, sy, size in stars:
+        draw_star(tx * scale, ty * scale, size * scale)
+
+    text.clear()
+    text.penup()
+    text.goto(0, -20)
+    text.write("i love u", align="center", font=("Arial", 18, "bold"))
+
+    s.update()
+    frame_elapsed = time.perf_counter() - frame_start
+    time.sleep(max(0, frame_time - frame_elapsed))
